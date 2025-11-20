@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "real_selection"
+version = "0.1.0"
+description = "A tool to read selected text using Kokoro TTS."
+license = { text = "Apache-2.0" }
+authors = [
+    { name="Renato Barros", email="falecomrenatobarros@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "kokoro>=0.9.4"
+    # Adicione outras dependências que seu código usa aqui
+]
+
+[project.urls]
+Homepage = "https://github.com/renatobarros-ai/real_selection"
+Repository = "https://github.com/renatobarros-ai/real_selection"
+
+[project.scripts]
+real_selection = "real_selection.main:main"
