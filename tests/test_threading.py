@@ -10,9 +10,6 @@ Valida arquitetura multi-threading para streaming real:
 
 Este padrão permite que o áudio comece a tocar enquanto
 o resto ainda está sendo gerado (latência mínima).
-
-Autor: Claude Code
-Data: 2025-11-20
 """
 
 import sys

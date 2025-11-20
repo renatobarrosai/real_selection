@@ -3,17 +3,23 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "real_selection"
+name = "Real Selection"
 version = "0.1.0"
-description = "A tool to read selected text using Kokoro TTS."
-license = { text = "Apache-2.0" }
+description = "A tool to read selected text using Kokoro TTS with real-time streaming and GPU acceleration."
+readme = "README.md"
+license = { file = "LICENSE" }
 authors = [
     { name="Renato Barros", email="falecomrenatobarros@gmail.com" }
 ]
-requires-python = ">=3.13"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: POSIX :: Linux"
+]
+requires-python = ">=3.10, <3.14"
 dependencies = [
-    "kokoro>=0.9.4"
-    # Adicione outras dependências que seu código usa aqui
+    "kokoro>=0.9.4",
+    "pyaudio>=0.2.13"
 ]
 
 [project.urls]

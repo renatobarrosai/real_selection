@@ -7,9 +7,6 @@ Valida playback de áudio em tempo real usando PyAudio:
 - Toca áudio diretamente (sem salvar arquivo)
 - Verifica latência e qualidade
 - Detecta buffer underruns (crackling)
-
-Autor: Claude Code
-Data: 2025-11-20
 """
 
 import sys

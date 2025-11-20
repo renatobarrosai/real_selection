@@ -280,8 +280,6 @@ Este script segue a mesma licença do projeto Kokoro (Apache 2.0).
 ## 👥 Créditos
 
 - **Kokoro-82M**: [hexgrad](https://huggingface.co/hexgrad/Kokoro-82M)
-- **Script**: Desenvolvido por Claude Code
-- **Data**: 2025-11-20
 
 ## 🆘 Suporte
 

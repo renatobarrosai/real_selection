@@ -7,9 +7,6 @@ Valida que o pipeline Kokoro carrega corretamente:
 - Voz 'pf_dora'
 - Device 'cuda' (GPU)
 - Gera áudio de teste e mede performance
-
-Autor: Claude Code
-Data: 2025-11-20
 """
 
 import sys

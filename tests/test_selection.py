@@ -9,9 +9,6 @@ Instruções:
 1. Selecione um texto em qualquer aplicativo (browser, terminal, editor)
 2. Execute este script
 3. O script mostrará o texto bruto e o texto limpo
-
-Autor: Claude Code
-Data: 2025-11-20
 """
 
 import subprocess

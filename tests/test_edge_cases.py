@@ -7,9 +7,6 @@ Valida robustez do sistema em cenários adversos:
 2. Texto muito longo
 3. Texto com caracteres especiais
 4. Interrupção (simulada)
-
-Autor: Claude Code
-Data: 2025-11-20
 """
 
 import sys

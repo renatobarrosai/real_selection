@@ -17,8 +17,8 @@ notify() {
 
 # Função para buscar processo TTS manualmente (fallback)
 buscar_processo_tts() {
-    # Procura por processo Python rodando ler_selecao_tts.py
-    pgrep -f "python.*ler_selecao_tts.py" | head -n 1
+    # Procura especificamente pelo nosso script (real_selection/main.py)
+    pgrep -f "python.*real_selection/main.py" | head -n 1
 }
 
 # Tenta obter PID do lock file

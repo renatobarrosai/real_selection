@@ -16,11 +16,8 @@ Características:
 
 Uso:
 1. Selecione um texto em qualquer aplicativo
-2. Execute: python ler_selecao_tts.py
+2. Execute: python main.py
 3. O áudio será tocado imediatamente
-
-Autor: Claude Code
-Data: 2025-11-20
 """
 
 import sys
@@ -104,7 +101,6 @@ def obter_selecao_primaria() -> Optional[str]:
 
         texto = texto.strip()
         logger.debug(f"Texto capturado: {len(texto)} caracteres")
-        logger.debug(f"Primeiros 100 chars: {repr(texto[:100])}")
 
         return texto
 
@@ -190,7 +186,6 @@ class AudioProducerThread(threading.Thread):
         """
         try:
             logger.debug(f"[Producer] Thread iniciada")
-            logger.debug(f"[Producer] Texto: {self.texto[:100]}...")
 
             tempo_inicio = time.perf_counter()
 
@@ -250,12 +245,15 @@ class AudioConsumerThread(threading.Thread):
             logger.debug("[Consumer] Thread iniciada")
 
             # Abre stream
+            # TODO PRODUÇÃO: Remover output_device_index hardcoded (9)
+            # Deve ser configurável ou usar device padrão do sistema
+            # Atualmente configurado para o ambiente de dev (Arch + Hyprland + Kitty)
             stream = self.pyaudio_instance.open(
                 format=pyaudio.paFloat32,
                 channels=1,
                 rate=24000,
                 output=True,
-                output_device_index = 9,
+                output_device_index=9,  # FIXME: Hardcoded para dev
                 frames_per_buffer=2048
             )
 
@@ -358,7 +356,6 @@ def processar_tts(texto: str, pipeline: KPipeline) -> bool:
         bool: True se sucesso, False se erro
     """
     logger.info(f"Processando texto: {len(texto)} caracteres")
-    logger.debug(f"Texto completo: {texto[:200]}...")
 
     # Cria fila e PyAudio
     audio_queue = queue.Queue(maxsize=10)

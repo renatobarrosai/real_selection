@@ -7,9 +7,6 @@ Verifica se todas as dependências necessárias estão instaladas e funcionando:
 - espeak-ng
 - pyaudio
 - PyTorch com CUDA
-
-Autor: Claude Code
-Data: 2025-11-20
 """
 
 import subprocess

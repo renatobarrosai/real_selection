@@ -15,8 +15,7 @@
 # Configurações
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"
-TTS_SCRIPT="$SCRIPT_DIR/ler_selecao_tts.py"
+PYTHON_SCRIPT="$PROJECT_DIR/src/real_selection/main.py"
 LOCK_FILE="/tmp/kokoro_tts.lock"
 LOG_FILE="$PROJECT_DIR/logs/tts_wrapper.log"
 
@@ -77,15 +76,9 @@ cleanup() {
 # Handler de sinais
 trap cleanup EXIT
 
-# Verifica dependências
-if [ ! -f "$PYTHON_BIN" ]; then
-    log_error "Python não encontrado: $PYTHON_BIN"
-    notify "TTS Kokoro - Erro" "Python não encontrado!" "critical"
-    exit 1
-fi
-
-if [ ! -f "$TTS_SCRIPT" ]; then
-    log_error "Script TTS não encontrado: $TTS_SCRIPT"
+# Verifica se o main.py existe
+if [ ! -f "$PYTHON_SCRIPT" ]; then
+    log_error "Script principal não encontrado: $PYTHON_SCRIPT"
     notify "TTS Kokoro - Erro" "Script não encontrado!" "critical"
     exit 1
 fi
@@ -102,7 +95,8 @@ notify "TTS Kokoro" "Iniciando síntese de voz..." "low"
 # Executa TTS em background e captura PID
 # Redireciona stderr para arquivo temporário (filtramos ALSA depois)
 TMP_LOG="/tmp/kokoro_tts_$$.log"
-"$PYTHON_BIN" "$TTS_SCRIPT" 2>"$TMP_LOG" &
+cd "$PROJECT_DIR"
+uv run python "$PYTHON_SCRIPT" 2>"$TMP_LOG" &
 python_pid=$!
 
 # Cria lock com PID do processo Python
