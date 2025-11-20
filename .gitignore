@@ -14,7 +14,7 @@ CLAUDE.md
 GEMINI.md
 
 # Pasta de desenvolvimento
-.dev_docs/
+.dev_docs/*.*
 
 # ----------------------------------------------------------------------------
 # PYTHON
