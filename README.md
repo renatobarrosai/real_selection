@@ -1,137 +1,184 @@
-# Real Selection
+# 🎙️ Real Selection
 
-A tool to read selected text using Kokoro TTS with real-time streaming and GPU acceleration.
+> **Síntese de voz em tempo real a partir de texto selecionado no Wayland**
 
-## Features
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Kokoro TTS](https://img.shields.io/badge/TTS-Kokoro--82M-green.svg)](https://github.com/hexgrad/kokoro)
+[![Wayland](https://img.shields.io/badge/Wayland-only-orange.svg)](https://wayland.freedesktop.org/)
 
-- 🎯 Captures Wayland primary selection (highlighted text, no Ctrl+C needed)
-- 🇧🇷 Brazilian Portuguese TTS with natural voice (pf_dora)
-- ⚡ Real-time audio streaming with ~300-500ms latency
-- 🚀 GPU (CUDA) accelerated with automatic CPU fallback
-- 🔧 Hyprland keyboard shortcuts integration
-- 📊 Dual logging system (INFO console, DEBUG file)
+---
 
-## Requirements
+## 📋 Sobre
 
-### System Dependencies (Arch Linux)
+**Real Selection** é uma ferramenta que transforma texto selecionado em áudio usando síntese de voz neural em português brasileiro. Basta selecionar um texto em qualquer aplicativo e pressionar um atalho — o áudio é gerado e reproduzido instantaneamente com streaming em tempo real.
+
+### ✨ Características
+
+- 🎯 **Captura automática** via seleção primária do Wayland
+- 🚀 **Streaming em tempo real** com latência mínima (threading)
+- 🔊 **Voz natural** em português BR (Kokoro-82M, voz `pf_dora`)
+- ⚡ **Aceleração GPU** via CUDA (fallback para CPU)
+- 🎨 **Integração Hyprland** com atalhos de teclado personalizados
+- 🔇 **Controle total** — inicia e interrompe a qualquer momento
+
+---
+
+## 🚀 Instalação
+
+### Requisitos
+
+- **Sistema**: Linux com Wayland (testado no Arch + Hyprland)
+- **Python**: 3.10 a 3.13
+- **GPU** (opcional): NVIDIA com CUDA para aceleração
+
+### Dependências do sistema
 
 ```bash
-sudo pacman -S wl-clipboard espeak-ng portaudio
+# Arch Linux
+sudo pacman -S python python-pip portaudio wl-clipboard
+
+# Debian/Ubuntu
+sudo apt install python3 python3-pip portaudio19-dev wl-clipboard
 ```
 
-### Python
-
-- Python >= 3.13
-- UV package manager
-
-## Installation
-
-### 1. Install UV (if not already installed)
+### Instalação do projeto
 
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-### 2. Clone and Install Real Selection
-
-```bash
+# Clone o repositório
 git clone https://github.com/renatobarros-ai/real_selection.git
 cd real_selection
+
+# Instale dependências (recomendado: uv)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
+
+# Ou via pip
+pip install -e .
 ```
 
-This will:
-- Create a virtual environment
-- Install all dependencies (including Kokoro)
-- Make the `real_selection` command available
+---
 
-### 3. Verify Installation
+## 📖 Uso Rápido
+
+### 1️⃣ Modo CLI
 
 ```bash
-# Run dependency tests
-uv run python tests/test_dependencies.py
+# Selecione um texto em qualquer aplicativo
+# Execute:
+uv run python src/real_selection/main.py
 
-# Test the tool (select some text first)
-uv run real_selection
+# Ou, se instalado via pip:
+real_selection
 ```
 
-## Usage
+### 2️⃣ Integração com Hyprland
 
-### Basic Usage
-
-1. **Select text** in any application (browser, PDF viewer, terminal)
-2. Run: `uv run real_selection`
-3. The audio will start playing automatically
-
-### Using Scripts (Recommended)
-
-For background execution with notifications:
-
-```bash
-# Make scripts executable
-chmod +x scripts/tts_wrapper.sh scripts/tts_kill.sh
-
-# Run TTS
-./scripts/tts_wrapper.sh
-
-# Stop TTS
-./scripts/tts_kill.sh
-```
-
-### Hyprland Integration
-
-Add to your `~/.config/hypr/hyprland.conf`:
+Adicione ao seu `~/.config/hypr/hyprland.conf`:
 
 ```conf
-# Read selected text
-bind = SUPER, T, exec, /path/to/real_selection/scripts/tts_wrapper.sh
+# Iniciar TTS
+bind = SUPER, T, exec, /caminho/para/scripts/tts_wrapper.sh
 
-# Stop TTS
-bind = SUPER SHIFT, T, exec, /path/to/real_selection/scripts/tts_kill.sh
+# Interromper TTS
+bind = SUPER SHIFT, T, exec, /caminho/para/scripts/tts_kill.sh
 ```
 
-Then reload Hyprland: `hyprctl reload`
+**Uso:**
+1. Selecione texto com o mouse
+2. Pressione `SUPER + T` → áudio é reproduzido
+3. Pressione `SUPER + SHIFT + T` → interrompe reprodução
 
-## Development
+---
 
-### Running Tests
+## 📚 Documentação
 
-```bash
-# All tests
-uv run pytest tests/
+| Documento | Descrição |
+|-----------|-----------|
+| [📐 Arquitetura](docs/ARQUITETURA.md) | Detalhes técnicos do sistema (threads, pipeline, streaming) |
+| [⚙️ Configuração](docs/CONFIGURACAO.md) | Setup completo para Hyprland, troubleshooting |
+| [🎤 Vozes e Idiomas](docs/VOZES.md) | Como configurar vozes, idiomas e velocidade |
+| [👩‍💻 Desenvolvimento](docs/DESENVOLVIMENTO.md) | Setup dev, testes, contribuições |
 
-# Specific tests
-uv run python tests/test_dependencies.py
-uv run python tests/test_selection.py
-uv run python tests/test_gpu_pipeline.py
+---
+
+## 🎤 Vozes Disponíveis
+
+O projeto usa **Kokoro-82M** (modelo neural de 82 milhões de parâmetros). Por padrão, está configurado para:
+
+- **Idioma**: Português Brasileiro (`lang_code='p'`)
+- **Voz**: `pf_dora` (voz feminina natural)
+- **Velocidade**: 1.0 (normal)
+
+### Recursos Kokoro
+
+- 📦 **Modelo no HuggingFace**: [hexgrad/Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)
+- 🎭 **Lista completa de vozes**: [VOICES.md](https://huggingface.co/hexgrad/Kokoro-82M/blob/main/VOICES.md)
+- 💻 **Repositório oficial**: [github.com/hexgrad/Kokoro](https://github.com/hexgrad/Kokoro)
+- 📚 **Guia de uso completo**: [Asimov Academy](https://github.com/asimov-academy/Kokoro-TTS---Guia-de-uso)
+
+Para configurar outras vozes e idiomas no Real Selection, consulte **[docs/VOZES.md](docs/VOZES.md)**.
+
+---
+
+## 🛠️ Tecnologias
+
+- **[Kokoro-82M](https://github.com/hexgrad/kokoro)** — TTS neural de alta qualidade
+- **[PyAudio](https://people.csail.mit.edu/hubert/pyaudio/)** — Reprodução de áudio via PortAudio
+- **[PyTorch](https://pytorch.org/)** — Inferência do modelo (GPU/CPU)
+- **[wl-clipboard](https://github.com/bugaevc/wl-clipboard)** — Captura de seleção no Wayland
+- **[Loguru](https://github.com/Delgan/loguru)** — Sistema de logging
+
+---
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Veja **[docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md)** para:
+
+- Setup do ambiente de desenvolvimento
+- Convenções de código
+- Como reportar bugs ou sugerir features
+
+---
+
+## 📜 Licença
+
+**Real Selection** é software livre licenciado sob **GNU General Public License v3.0 ou posterior**.
+
+```
+Real Selection - Síntese de voz em tempo real a partir de texto selecionado
+Copyright (C) 2025 Renato Barros
+
+Este programa é software livre: você pode redistribuí-lo e/ou modificá-lo
+sob os termos da GNU General Public License conforme publicada pela
+Free Software Foundation, versão 3 da Licença, ou (a seu critério)
+qualquer versão posterior.
 ```
 
-### Project Structure
+Veja o arquivo [LICENSE](LICENSE) para detalhes completos.
 
-```
-real_selection/
-├── src/real_selection/
-│   ├── main.py          # Main TTS engine
-│   └── clipboard.py     # Primary selection capture
-├── scripts/             # Integration scripts
-├── tests/               # Test suite
-├── docs/                # Documentation
-└── pyproject.toml       # Project configuration
-```
+---
 
-## Troubleshooting
+## 👤 Autor
 
-See [docs/README_LER_SELECAO.md](docs/README_LER_SELECAO.md) for detailed troubleshooting guide.
+**Renato Barros**  
+📧 falecomrenatobarros@gmail.com  
+🐙 [github.com/renatobarros-ai](https://github.com/renatobarros-ai)
 
-## Security & Privacy
+---
 
-- 🔒 **No audio files saved**: Audio streams directly to speakers, never touches disk
-- 🔒 **No text content logged**: Logs only show text length, never the actual content
-- 🔒 **Volatile by design**: Primary selection cleared on new selection
-- 🔒 **Offline operation**: No network requests after model download
+## 🙏 Agradecimentos
 
-## License
+- **[hexgrad/Kokoro](https://github.com/hexgrad/Kokoro)** — por disponibilizar modelo TTS de alta qualidade open source
+- **[Asimov Academy](https://github.com/asimov-academy)** — pelo excelente guia de uso do Kokoro TTS
+- **Comunidade Wayland/Hyprland** — por ferramentas e suporte
 
-GPL-3.0-or-later
+---
 
-This project uses [Kokoro-82M](https://github.com/hexgrad/Kokoro-82M) as a library, which is licensed under Apache-2.0.
+<div align="center">
+
+**[⬆ Voltar ao topo](#-real-selection)**
+
+Feito com ❤️ por [Renato Barros](https://github.com/renatobarros-ai)
+
+</div>

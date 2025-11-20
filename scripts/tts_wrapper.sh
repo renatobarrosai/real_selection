@@ -1,15 +1,33 @@
 #!/bin/bash
+#
+# Real Selection - Síntese de voz em tempo real a partir de texto selecionado
+# Copyright (C) 2025 Renato Barros
+#
+# Este programa é software livre: você pode redistribuí-lo e/ou modificá-lo
+# sob os termos da GNU General Public License conforme publicada pela
+# Free Software Foundation, versão 3 da Licença, ou (a seu critério)
+# qualquer versão posterior.
+#
+# Este programa é distribuído na esperança de que seja útil, mas SEM QUALQUER
+# GARANTIA; sem mesmo a garantia implícita de COMERCIALIZAÇÃO ou ADEQUAÇÃO A UM
+# PROPÓSITO ESPECÍFICO. Consulte a GNU General Public License para mais detalhes.
+#
+# Você deve ter recebido uma cópia da GNU General Public License junto com este
+# programa. Caso contrário, consulte <https://www.gnu.org/licenses/>.
+#
+
 ##
 ## Wrapper para executar TTS de seleção primária no Hyprland
 ##
-## Características:
-## - Roda em background (não precisa de terminal)
-## - Notificações visuais
-## - Previne múltiplas instâncias
-## - Suprime avisos do ALSA
+## Responsabilidades:
+## - Roda TTS em background (não bloqueia terminal)
+## - Notificações visuais (via notify-send)
+## - Previne múltiplas instâncias simultâneas
+## - Suprime warnings do ALSA no console
 ##
-## Uso: ./tts_wrapper.sh
-## Ou bind no Hyprland: bind = SUPER, T, exec, ~/.aur/kokoro/examples/tts_wrapper.sh
+## Uso:
+##   ./tts_wrapper.sh
+##   Ou bind no Hyprland: bind = SUPER, T, exec, ~/.aur/kokoro/examples/tts_wrapper.sh
 ##
 
 # Configurações
@@ -23,9 +41,9 @@ LOG_FILE="$PROJECT_DIR/logs/tts_wrapper.log"
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'  # No Color
 
-# Função de log
+# Funções de log
 log() {
     echo -e "${GREEN}[$(date '+%H:%M:%S')]${NC} $1" | tee -a "$LOG_FILE"
 }
@@ -38,7 +56,7 @@ log_warn() {
     echo -e "${YELLOW}[$(date '+%H:%M:%S')] AVISO:${NC} $1" | tee -a "$LOG_FILE"
 }
 
-# Função para enviar notificação
+# Envia notificação via notify-send (se disponível)
 notify() {
     local title="$1"
     local message="$2"
@@ -54,7 +72,7 @@ check_running() {
     if [ -f "$LOCK_FILE" ]; then
         local pid=$(cat "$LOCK_FILE")
 
-        # Verifica se o PID ainda existe
+        # Verifica se PID ainda existe
         if ps -p "$pid" > /dev/null 2>&1; then
             log_warn "TTS já está rodando (PID: $pid)"
             notify "TTS Kokoro" "Já existe uma instância rodando!" "low"
@@ -76,7 +94,7 @@ cleanup() {
 # Handler de sinais
 trap cleanup EXIT
 
-# Verifica se o main.py existe
+# Verifica se main.py existe
 if [ ! -f "$PYTHON_SCRIPT" ]; then
     log_error "Script principal não encontrado: $PYTHON_SCRIPT"
     notify "TTS Kokoro - Erro" "Script não encontrado!" "critical"
@@ -106,13 +124,12 @@ log "TTS rodando em background (PID: $python_pid)"
 
 # Monitora processo em background e faz cleanup
 (
-    # Aguarda processo terminar (verifica a cada 0.5s)
+    # Aguarda processo terminar (polling a cada 0.5s)
     while kill -0 $python_pid 2>/dev/null; do
         sleep 0.5
     done
 
-    # Captura código de saída do lock file (Python pode ter gravado)
-    # Se não existe, tenta via $? (mas não funciona em subshell, assume 0)
+    # Captura código de saída (assume 0 se não conseguir obter)
     exit_code=0
 
     # Filtra e anexa logs (remove avisos ALSA)
@@ -124,8 +141,7 @@ log "TTS rodando em background (PID: $python_pid)"
     # Remove lock
     rm -f "$LOCK_FILE"
 
-    # Verifica se processo foi morto ou terminou normalmente
-    # (se foi morto via tts_kill.sh, lock já foi removido)
+    # Verifica se foi interrupção ou conclusão normal
     if [ $exit_code -eq 0 ]; then
         log "TTS concluído com sucesso"
         notify "TTS Kokoro" "Concluído!" "low"
@@ -137,7 +153,7 @@ log "TTS rodando em background (PID: $python_pid)"
 
 monitor_pid=$!
 
-# Desvincula apenas o monitor do terminal (Python já está desvinculado por herança)
+# Desvincula monitor do terminal (Python já está desvinculado)
 disown $monitor_pid
 
 exit 0

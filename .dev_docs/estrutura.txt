@@ -1,0 +1,30 @@
+./
+├── .dev_docs/
+│   ├── estrutura.txt
+│   └── IMPLEMENTACAO.md
+├── docs/
+│   ├── ARQUITETURA.md
+│   ├── CONFIGURACAO.md
+│   ├── DESENVOLVIMENTO.md
+│   └── VOZES.md
+├── integrations/
+│   └── hyprland_binds.conf
+├── logs/
+│   └── .gitkeep
+├── scripts/
+│   ├── tts_kill.sh
+│   └── tts_wrapper.sh
+├── src/
+│   └── real_selection/
+│       ├── __init__.py
+│       └── main.py
+├── tests/
+│   └── .gitkeep
+├── .gitignore
+├── LICENSE
+├── pyproject.toml
+├── README.md
+├── .tool-versions
+└── uv.lock
+
+9 directories, 19 files

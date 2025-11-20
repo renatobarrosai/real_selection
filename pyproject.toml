@@ -1,7 +1,24 @@
+# Real Selection - Síntese de voz em tempo real a partir de texto selecionado
+# Copyright (C) 2025 Renato Barros
+#
+# Este programa é software livre: você pode redistribuí-lo e/ou modificá-lo
+# sob os termos da GNU General Public License conforme publicada pela
+# Free Software Foundation, versão 3 da Licença, ou (a seu critério)
+# qualquer versão posterior.
+#
+# Este programa é distribuído na esperança de que seja útil, mas SEM QUALQUER
+# GARANTIA; sem mesmo a garantia implícita de COMERCIALIZAÇÃO ou ADEQUAÇÃO A UM
+# PROPÓSITO ESPECÍFICO. Consulte a GNU General Public License para mais detalhes.
+#
+# Você deve ter recebido uma cópia da GNU General Public License junto com este
+# programa. Caso contrário, consulte <https://www.gnu.org/licenses/>.
+
+# Build system - usa Hatchling (backend moderno e rápido)
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# Metadados do projeto
 [project]
 name = "Real Selection"
 version = "0.1.0"
@@ -11,20 +28,31 @@ license = { file = "LICENSE" }
 authors = [
     { name="Renato Barros", email="falecomrenatobarros@gmail.com" }
 ]
+
+# Classificadores PyPI - ajudam na descoberta do pacote
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: POSIX :: Linux"
 ]
+
+# Compatibilidade Python
+# 3.10: mínimo (match/case, type hints melhorados)
+# <3.14: limite superior (ainda não testado em versões futuras)
 requires-python = ">=3.10, <3.14"
+
+# Dependências core
 dependencies = [
-    "kokoro>=0.9.4",
-    "pyaudio>=0.2.13"
+    "kokoro>=0.9.4",    # TTS engine (Kokoro-82M)
+    "pyaudio>=0.2.13"   # Audio playback (interface para PortAudio)
 ]
 
+# Links públicos do projeto
 [project.urls]
 Homepage = "https://github.com/renatobarros-ai/real_selection"
 Repository = "https://github.com/renatobarros-ai/real_selection"
 
+# Entry point CLI
+# Permite executar via: real_selection (após instalação)
 [project.scripts]
 real_selection = "real_selection.main:main"

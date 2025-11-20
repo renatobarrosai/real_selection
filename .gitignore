@@ -1,35 +1,154 @@
-# Gemini and Claude files
+# ============================================================================
+# REAL SELECTION - .GITIGNORE
+# Copyright (C) 2025 Renato Barros
+# Licenciado sob GNU General Public License v3.0 ou posterior.
+#
+# Para mais detalhes sobre os padrões, veja: .dev_docs/GITIGNORE_REVIEW.md
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+# ARQUIVOS DE DESENVOLVIMENTO PESSOAL
+# ----------------------------------------------------------------------------
+# Arquivos de anotações e rascunhos de LLMs
 CLAUDE.md
 GEMINI.md
 
-# Python cache
+# Pasta de desenvolvimento
+.dev_docs/
+
+# ----------------------------------------------------------------------------
+# PYTHON
+# ----------------------------------------------------------------------------
+# Bytecode e caches
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 
-# Virtual environment
+# Ambientes virtuais
 .venv
 venv
-ENV
-env
+ENV/
+env/
 
-# Build artifacts
-dist/
+# Caches de ferramentas de linting e type checking
+.mypy_cache/
+.ruff_cache/
+.pytype/
+
+# Ferramentas de build e distribuição
 build/
-*.egg-info
+dist/
+*.egg-info/
+sdist/
+wheelhouse/
+*.spec
 
-# Local secrets and environment variables
+# Testes
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+pytest-report.html
+
+# Ambiente 'uv'
+.uv/
+
+# ----------------------------------------------------------------------------
+# LOGS E ARQUIVOS TEMPORÁRIOS
+# ----------------------------------------------------------------------------
+# Logs da aplicação
+logs/
+*.log
+*.log.*
+
+# Arquivos temporários do TTS
+/tmp/kokoro_tts.lock
+/tmp/kokoro_tts_*.wav
+
+# Caches de modelos
+.cache/
+*.pt.tmp
+*.bin.tmp
+*.safetensors.tmp
+
+# ----------------------------------------------------------------------------
+# SECRETS E CONFIGURAÇÕES LOCAIS
+# ----------------------------------------------------------------------------
+# Ignora todos os arquivos .env, exceto o de exemplo
 .env
-*.env
+.env.*
+!.env.example
 
-# Logs
-logs/
-*.log
+# ----------------------------------------------------------------------------
+# IDES E EDITORES
+# ----------------------------------------------------------------------------
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 
-# Tool versioning
-.tool-versions
+# PyCharm / IntelliJ
+.idea/
 
+# Vim
+*.swp
+*.swo
+*~
 
-# Log files and directories
-logs/
-*.log
+# Emacs
+#*#
+.#*
 
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# ----------------------------------------------------------------------------
+# SISTEMA OPERACIONAL
+# ----------------------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+.directory
+*~
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ----------------------------------------------------------------------------
+# ARQUIVOS DE ÁUDIO E DEBUG
+# ----------------------------------------------------------------------------
+# Chunks de áudio gerados para debug
+debug_chunk_*.wav
+test_audio_*.wav
+
+# ----------------------------------------------------------------------------
+# OUTROS
+# ----------------------------------------------------------------------------
+# Backups
+*.bak
+*.old
+*.orig
+
+# Arquivos compactados (exceto releases)
+*.zip
+*.tar.gz
+*.rar
+!releases/
+
+# Bancos de dados locais
+*.db
+*.sqlite
+*.sqlite3

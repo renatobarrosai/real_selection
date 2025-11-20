@@ -1,23 +1,33 @@
 #!/usr/bin/env python3
 """
-TTS de Seleção Primária com Streaming Real
+Real Selection - Síntese de voz em tempo real a partir de texto selecionado
+Copyright (C) 2025 Renato Barros
 
-Script principal que lê texto da seleção primária do Wayland
-e realiza síntese de voz em português do Brasil com streaming
-em tempo real usando arquitetura multi-threading.
+Este programa é software livre: você pode redistribuí-lo e/ou modificá-lo
+sob os termos da GNU General Public License conforme publicada pela
+Free Software Foundation, versão 3 da Licença, ou (a seu critério)
+qualquer versão posterior.
 
-Características:
-- Captura seleção primária (wl-paste --primary)
-- Limpa texto automaticamente
-- Gera áudio com Kokoro (voz pf_dora)
-- Usa GPU (CUDA) para inferência rápida
-- Streaming com latência mínima (threading)
-- Logging em dois níveis (INFO console, DEBUG arquivo)
+Este programa é distribuído na esperança de que seja útil, mas SEM QUALQUER
+GARANTIA; sem mesmo a garantia implícita de COMERCIALIZAÇÃO ou ADEQUAÇÃO A UM
+PROPÓSITO ESPECÍFICO. Consulte a GNU General Public License para mais detalhes.
 
-Uso:
-1. Selecione um texto em qualquer aplicativo
-2. Execute: python main.py
-3. O áudio será tocado imediatamente
+Você deve ter recebido uma cópia da GNU General Public License junto com este
+programa. Caso contrário, consulte <https://www.gnu.org/licenses/>.
+"""
+
+"""
+Script principal que captura texto da seleção primária do Wayland e sintetiza
+voz em português brasileiro usando Kokoro TTS com streaming em tempo real.
+
+Arquitetura:
+- Producer thread: gera chunks de áudio via Kokoro (GPU)
+- Consumer thread: reproduz chunks via PyAudio
+- Queue de até 10 chunks para buffering mínimo
+
+Dependências externas:
+- wl-clipboard: captura seleção primária
+- CUDA: aceleração GPU (fallback para CPU)
 """
 
 import sys
@@ -39,22 +49,18 @@ from kokoro import KPipeline
 
 
 # ============================================================================
-# CONFIGURAÇÃO DE LOGGING
+# LOGGING
 # ============================================================================
 
 def configurar_logging():
     """
-    Configura sistema de logging com loguru.
-
-    - Console: nível INFO (mensagens importantes)
-    - Arquivo: nível DEBUG (tudo, para troubleshooting)
-    - Rotação: 10 MB por arquivo
-    - Retenção: últimos 5 arquivos
+    Console: INFO (mensagens relevantes para usuário)
+    Arquivo: DEBUG (troubleshooting detalhado)
+    Rotação: 10 MB, últimos 5 arquivos compactados
     """
-    # Remove handler padrão
     logger.remove()
 
-    # Handler para console (INFO e acima)
+    # Console: apenas o essencial
     logger.add(
         sys.stderr,
         format="<green>[{time:HH:mm:ss}]</green> <level>{level:8}</level> | <level>{message}</level>",
@@ -62,7 +68,7 @@ def configurar_logging():
         colorize=True
     )
 
-    # Handler para arquivo (DEBUG e acima)
+    # Arquivo: tudo para debug posterior
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
 
@@ -84,10 +90,8 @@ def configurar_logging():
 
 def obter_selecao_primaria() -> Optional[str]:
     """
-    Captura texto da seleção primária do Wayland.
-
-    Returns:
-        Optional[str]: Texto selecionado ou None se erro
+    Captura via wl-paste --primary (seleção do mouse no Wayland).
+    Timeout de 2s previne travamentos se clipboard não responder.
     """
     logger.debug("Executando wl-paste --primary")
 
@@ -101,7 +105,6 @@ def obter_selecao_primaria() -> Optional[str]:
 
         texto = texto.strip()
         logger.debug(f"Texto capturado: {len(texto)} caracteres")
-
         return texto
 
     except FileNotFoundError:
@@ -114,6 +117,7 @@ def obter_selecao_primaria() -> Optional[str]:
         return None
 
     except subprocess.CalledProcessError:
+        # Seleção vazia não é erro
         logger.debug("Seleção primária vazia")
         return ""
 
@@ -124,32 +128,26 @@ def obter_selecao_primaria() -> Optional[str]:
 
 def limpar_texto_para_tts(texto: str) -> Optional[str]:
     """
-    Limpa texto para síntese de voz.
-
-    Remove quebras de linha de PDFs/terminais mas preserva parágrafos.
-
-    Args:
-        texto: Texto bruto
-
-    Returns:
-        Optional[str]: Texto limpo ou None se vazio
+    Remove quebras de linha indesejadas (PDFs, terminal) mas preserva parágrafos.
+    
+    Estratégia:
+    - Quebra simples (\n) → espaço (junta linhas do mesmo parágrafo)
+    - Quebra dupla (\n\n) → mantém (separação entre parágrafos)
     """
     if not texto:
         return None
 
     logger.debug("Limpando texto para TTS")
-    logger.debug(f"Texto original: {len(texto)} chars, {texto.count(chr(10))} quebras de linha")
+    logger.debug(f"Original: {len(texto)} chars, {texto.count(chr(10))} quebras")
 
-    # 1. Substitui quebras simples por espaço (preserva quebras duplas)
+    # Substitui \n isolado por espaço, mantém \n\n
     texto_limpo = re.sub(r'(?<!\n)\n(?!\n)', ' ', texto)
-
-    # 2. Remove espaços múltiplos (mas não quebras de linha)
+    
+    # Remove espaços múltiplos (mas não quebras)
     texto_limpo = re.sub(r'[ \t]+', ' ', texto_limpo)
-
-    # 3. Remove espaços no início e fim
     texto_limpo = texto_limpo.strip()
 
-    logger.debug(f"Texto limpo: {len(texto_limpo)} chars, {texto_limpo.count(chr(10))} quebras de linha")
+    logger.debug(f"Limpo: {len(texto_limpo)} chars, {texto_limpo.count(chr(10))} quebras")
 
     return texto_limpo if texto_limpo else None
 
@@ -160,7 +158,8 @@ def limpar_texto_para_tts(texto: str) -> Optional[str]:
 
 class AudioProducerThread(threading.Thread):
     """
-    Thread que gera áudio com Kokoro e enfileira chunks.
+    Gera áudio via Kokoro e enfileira chunks para reprodução.
+    Non-daemon: precisa finalizar corretamente para enviar sinal de término.
     """
 
     def __init__(
@@ -181,18 +180,16 @@ class AudioProducerThread(threading.Thread):
         self.num_chunks = 0
 
     def run(self):
-        """
-        Executa geração de áudio.
-        """
+        """Executa pipeline Kokoro e enfileira chunks conforme são gerados."""
         try:
             logger.debug(f"[Producer] Thread iniciada")
-
             tempo_inicio = time.perf_counter()
 
-            # Gera chunks
             for i, result in enumerate(self.pipeline(self.texto, voice=self.voz, speed=self.speed)):
                 if result.audio is not None:
                     self.num_chunks += 1
+                    
+                    # Kokoro retorna torch.Tensor, convertemos para numpy float32
                     chunk = result.audio.cpu().numpy().astype(np.float32)
 
                     duracao = len(chunk) / 24000
@@ -202,10 +199,9 @@ class AudioProducerThread(threading.Thread):
                     logger.debug(f"[Producer] Fila: {tamanho_fila} chunks aguardando")
                     logger.info(f"Chunk {self.num_chunks} gerado ({duracao:.2f}s)")
 
-                    # Enfileira
                     self.audio_queue.put(chunk)
 
-            # Sinaliza fim
+            # None sinaliza fim para consumer
             self.audio_queue.put(None)
 
             tempo_total = (time.perf_counter() - tempo_inicio) * 1000
@@ -215,13 +211,14 @@ class AudioProducerThread(threading.Thread):
         except Exception as e:
             self.erro = e
             logger.exception(f"[Producer] Erro: {e}")
-            # Envia None para desbloquear consumer
+            # Envia None para desbloquear consumer mesmo com erro
             self.audio_queue.put(None)
 
 
 class AudioConsumerThread(threading.Thread):
     """
-    Thread que desenfileira e toca chunks de áudio.
+    Desenfileira e reproduz chunks via PyAudio.
+    Bloqueia em queue.get() até ter dados ou receber sinal de término (None).
     """
 
     def __init__(
@@ -236,24 +233,21 @@ class AudioConsumerThread(threading.Thread):
         self.chunks_tocados = 0
 
     def run(self):
-        """
-        Executa playback de chunks.
-        """
+        """Reproduz chunks conforme ficam disponíveis na fila."""
         stream = None
 
         try:
             logger.debug("[Consumer] Thread iniciada")
 
-            # Abre stream
-            # TODO PRODUÇÃO: Remover output_device_index hardcoded (9)
-            # Deve ser configurável ou usar device padrão do sistema
-            # Atualmente configurado para o ambiente de dev (Arch + Hyprland + Kitty)
+            # TODO: Remover hardcoded output_device_index=9
+            # Device atual é específico do ambiente de dev (Arch + Hyprland).
+            # Em produção, deve usar device padrão do sistema ou ser configurável.
             stream = self.pyaudio_instance.open(
                 format=pyaudio.paFloat32,
                 channels=1,
                 rate=24000,
                 output=True,
-                output_device_index=9,  # FIXME: Hardcoded para dev
+                output_device_index=9,  # FIXME: hardcoded
                 frames_per_buffer=2048
             )
 
@@ -261,20 +255,17 @@ class AudioConsumerThread(threading.Thread):
             logger.info("Iniciando playback...")
 
             while True:
-                # Desenfileira (bloqueia se vazio)
+                # Bloqueia até ter chunk disponível
                 chunk = self.audio_queue.get()
 
-                # None = fim
                 if chunk is None:
                     logger.debug("[Consumer] Sinal de término recebido")
                     break
 
-                # Toca
                 self.chunks_tocados += 1
                 duracao = len(chunk) / 24000
 
                 logger.debug(f"[Consumer] Tocando chunk {self.chunks_tocados} ({duracao:.2f}s)")
-
                 stream.write(chunk.tobytes())
 
             logger.debug(f"[Consumer] Finalizado: {self.chunks_tocados} chunks tocados")
@@ -295,20 +286,17 @@ class AudioConsumerThread(threading.Thread):
 
 
 # ============================================================================
-# FUNÇÃO PRINCIPAL
+# INICIALIZAÇÃO E PROCESSAMENTO
 # ============================================================================
 
 def inicializar_pipeline() -> Optional[KPipeline]:
     """
-    Inicializa pipeline Kokoro com GPU.
-
-    Returns:
-        Optional[KPipeline]: Pipeline ou None se erro
+    Carrega modelo Kokoro (82M parâmetros) e voz pf_dora.
+    Prefere CUDA se disponível, fallback para CPU.
     """
     logger.info("Inicializando pipeline...")
     logger.debug("Lang: pt-br (p), Voz: pf_dora, Repo: hexgrad/Kokoro-82M")
 
-    # Verifica CUDA
     cuda_disponivel = torch.cuda.is_available()
 
     if cuda_disponivel:
@@ -319,12 +307,11 @@ def inicializar_pipeline() -> Optional[KPipeline]:
         device = 'cpu'
         logger.warning("CUDA não disponível, usando CPU (mais lento)")
 
-    # Inicializa
     try:
         tempo_inicio = time.perf_counter()
 
         pipeline = KPipeline(
-            lang_code='p',
+            lang_code='p',  # português
             repo_id='hexgrad/Kokoro-82M',
             device=device
         )
@@ -332,7 +319,7 @@ def inicializar_pipeline() -> Optional[KPipeline]:
         tempo_init = (time.perf_counter() - tempo_inicio) * 1000
         logger.debug(f"Pipeline inicializado em {tempo_init:.0f}ms")
 
-        # Pré-carrega voz
+        # Pré-carrega voz para evitar latência no primeiro uso
         logger.debug("Carregando voz pf_dora...")
         pipeline.load_voice('pf_dora')
 
@@ -346,22 +333,17 @@ def inicializar_pipeline() -> Optional[KPipeline]:
 
 def processar_tts(texto: str, pipeline: KPipeline) -> bool:
     """
-    Processa TTS com streaming em tempo real.
-
-    Args:
-        texto: Texto limpo para síntese
-        pipeline: Pipeline Kokoro inicializado
-
-    Returns:
-        bool: True se sucesso, False se erro
+    Orquestra producer/consumer threads para streaming.
+    
+    Consumer inicia primeiro para evitar perda de chunks iniciais.
+    Delay de 100ms garante que stream esteja pronto antes de producer começar.
     """
     logger.info(f"Processando texto: {len(texto)} caracteres")
 
-    # Cria fila e PyAudio
+    # Fila limitada a 10 chunks previne uso excessivo de memória
     audio_queue = queue.Queue(maxsize=10)
     p = pyaudio.PyAudio()
 
-    # Cria threads
     producer = AudioProducerThread(
         texto=texto,
         audio_queue=audio_queue,
@@ -375,24 +357,22 @@ def processar_tts(texto: str, pipeline: KPipeline) -> bool:
         pyaudio_instance=p
     )
 
-    # Inicia threads
     logger.debug("Iniciando threads de produção e consumo")
     tempo_inicio = time.perf_counter()
 
+    # Consumer primeiro, depois producer
     consumer.start()
-    time.sleep(0.1)  # Pequeno delay para consumer estar pronto
+    time.sleep(0.1)
     producer.start()
 
-    # Aguarda conclusão
+    # Aguarda ambas finalizarem
     producer.join()
     consumer.join()
 
     tempo_total = (time.perf_counter() - tempo_inicio) * 1000
-
-    # Termina PyAudio
     p.terminate()
 
-    # Verifica erros
+    # Verifica se houve erros
     if producer.erro or consumer.erro:
         logger.error("Erros durante processamento")
         if producer.erro:
@@ -407,29 +387,23 @@ def processar_tts(texto: str, pipeline: KPipeline) -> bool:
     return consumer.chunks_tocados == producer.num_chunks
 
 
-# Variável global para pipeline (reutilização)
+# Pipeline global para reutilização entre chamadas
+# (evita recarregar modelo a cada execução)
 _pipeline_global = None
 
 
 def cleanup_handler(signum, frame):
-    """
-    Handler para sinais de interrupção (Ctrl+C).
-    """
+    """Handler para Ctrl+C - encerra graciosamente."""
     logger.warning("Interrupção detectada (SIGINT)")
     logger.info("Encerrando...")
     sys.exit(130)
 
 
 def main():
-    """
-    Função principal do script.
-    """
+    """Fluxo principal: captura → limpa → sintetiza → reproduz."""
     global _pipeline_global
 
-    # Configura logging
     configurar_logging()
-
-    # Configura handler de sinais
     signal.signal(signal.SIGINT, cleanup_handler)
 
     logger.info("=" * 60)
@@ -460,7 +434,7 @@ def main():
 
     logger.info(f"Texto limpo: {len(texto_limpo)} caracteres")
 
-    # 3. Inicializa pipeline (reutiliza se já existir)
+    # 3. Inicializa pipeline (reutiliza se já carregado)
     if _pipeline_global is None:
         _pipeline_global = inicializar_pipeline()
 
